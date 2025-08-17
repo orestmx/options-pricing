@@ -74,7 +74,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # App Title and Description
-st.title("🚀 Advanced Option Pricing Calculator")
+st.title("Advanced Option Pricing Calculator")
 st.markdown("""
 **Compare Black-Scholes and Monte Carlo pricing methods with interactive visualizations**
 
@@ -320,7 +320,7 @@ if 'results' in st.session_state:
         # Plot type selection
         plot_type = st.selectbox("Visualization Type", ["Price Paths", "Final Price Distribution", "Both"])
 
-    if st.button("🎨 Generate Visualizations"):
+    if st.button("Generate Visualizations"):
         paths = results['paths']
         cfg = results['cfg']
 
@@ -430,7 +430,6 @@ if 'results' in st.session_state:
 st.markdown("---")
 st.markdown("""
 <div style="text-align: center; color: #666; padding: 20px;">
-    <p>Built with Streamlit 🚀 | Powered by your custom pricing package 📦</p>
     <p><em>For educational and research purposes</em></p>
 </div>
 """, unsafe_allow_html=True)
