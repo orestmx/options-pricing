@@ -16,7 +16,7 @@ class MCParams:
     T: float               # time to maturity in years
     M: int                 # number of paths
     steps: int = 252       # time steps
-    r: float = 0.0         # risk-free rate (annualized, continuously compounded)
+    r: float = 0.0         # risk-free rate
     antithetic: bool = False
     seed: Optional[int] = None
     numgen: str = "normal"
