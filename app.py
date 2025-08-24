@@ -16,7 +16,8 @@ from src import (
     european_payoff,
     digital_payoff,
     year_fraction,
-    bs_pricer
+    bs_pricer,
+    bs_digital_pricer
 )
 
 # Streamlit App Configuration
@@ -326,6 +327,10 @@ else:
         st.header("Option Settings")
         option_type = st.selectbox("Option Type", ["call", "put"])
         payoff_type = st.selectbox("Payoff Type", ["European", "Digital"])
+        if payoff_type == "Digital":
+            H = st.number_input("Cash Payout (H)", value=1.0, min_value=0.01, step=0.1, format="%.2f", key="H")
+        else:
+            H = None
 
         st.header("Monte Carlo Settings")
         M = st.number_input("Number of Paths", value=100000, min_value=1000, max_value=1000000, step=1000)
@@ -379,7 +384,10 @@ else:
                 status_text.text("Calculating Black-Scholes price...")
                 progress_bar.progress(50)
 
-                bs_price = bs_pricer(S=S0, K=K, r=r, T=T, sigma=sigma, option_type=option_type)
+                if payoff_type == "European":
+                    bs_price = bs_pricer(S=S0, K=K, r=r, T=T, sigma=sigma, option_type=option_type)
+                else:  # Digital
+                    bs_price = bs_digital_pricer(S=S0, K=K, r=r, T=T, sigma=sigma, H=H, option_type=option_type)
 
                 # Calculate Monte Carlo price
                 status_text.text("Calculating Monte Carlo price...")
@@ -388,7 +396,7 @@ else:
                 if payoff_type == "European":
                     payoff_func = european_payoff(K=K, option_type=option_type)
                 else:  # Digital
-                    payoff_func = digital_payoff(K=K, option_type=option_type)
+                    payoff_func = digital_payoff(K=K, option_type=option_type, cash=H)
 
                 mc_price_result = mc_price(paths, payoff_func, r, T)
 
@@ -409,7 +417,8 @@ else:
                     'cfg': cfg,
                     'payoff_type': payoff_type,
                     'option_type': option_type,
-                    'K': K
+                    'K': K,
+                    'H': H if payoff_type == "Digital" else None
                 }
 
             except Exception as e:
@@ -460,47 +469,46 @@ else:
                 )
 
             # Convergence analysis
-            if results['payoff_type'] == "European":  # Only show for European options where BS is available
-                st.subheader("Monte Carlo Convergence Analysis")
+            st.subheader("Monte Carlo Convergence Analysis")
 
-                # Calculate running average for convergence plot
-                if results['payoff_type'] == "European":
-                    payoff_func = european_payoff(K=results['K'], option_type=results['option_type'])
-                else:
-                    payoff_func = digital_payoff(K=results['K'], option_type=results['option_type'])
+            # Calculate running average for convergence plot
+            if results['payoff_type'] == "European":
+                payoff_func = european_payoff(K=results['K'], option_type=results['option_type'])
+            else:
+                payoff_func = digital_payoff(K=results['K'], option_type=results['option_type'], cash=results['H'])
 
-                # Calculate payoffs for all paths
-                terminal_prices = results['paths'][:, -1]
-                all_payoffs = payoff_func(terminal_prices)
-                discounted_payoffs = np.exp(-r * T) * all_payoffs
+            # Calculate payoffs for all paths
+            terminal_prices = results['paths'][:, -1]
+            all_payoffs = payoff_func(terminal_prices)
+            discounted_payoffs = np.exp(-r * T) * all_payoffs
 
-                # Running average
-                n_points = min(1000, len(discounted_payoffs))
-                indices = np.linspace(100, len(discounted_payoffs), n_points, dtype=int)
-                running_avg = [np.mean(discounted_payoffs[:i]) for i in indices]
+            # Running average
+            n_points = min(1000, len(discounted_payoffs))
+            indices = np.linspace(100, len(discounted_payoffs), n_points, dtype=int)
+            running_avg = [np.mean(discounted_payoffs[:i]) for i in indices]
 
-                # Create convergence plot
-                fig_conv = go.Figure()
-                fig_conv.add_trace(go.Scatter(
-                    x=indices,
-                    y=running_avg,
-                    mode='lines',
-                    name='MC Running Average',
-                    line=dict(color='blue', width=2)
-                ))
-                fig_conv.add_hline(
-                    y=results['bs_price'],
-                    line_dash="dash",
-                    line_color="red",
-                    annotation_text="Black-Scholes Price"
-                )
-                fig_conv.update_layout(
-                    title="Monte Carlo Convergence to Black-Scholes Price",
-                    xaxis_title="Number of Paths",
-                    yaxis_title="Option Price",
-                    height=400
-                )
-                st.plotly_chart(fig_conv, use_container_width=True)
+            # Create convergence plot
+            fig_conv = go.Figure()
+            fig_conv.add_trace(go.Scatter(
+                x=indices,
+                y=running_avg,
+                mode='lines',
+                name='MC Running Average',
+                line=dict(color='blue', width=2)
+            ))
+            fig_conv.add_hline(
+                y=results['bs_price'],
+                line_dash="dash",
+                line_color="red",
+                annotation_text="Black-Scholes Price"
+            )
+            fig_conv.update_layout(
+                title="Monte Carlo Convergence to Black-Scholes Price",
+                xaxis_title="Number of Paths",
+                yaxis_title="Option Price",
+                height=400
+            )
+            st.plotly_chart(fig_conv, use_container_width=True)
 
     with col2:
         st.header("Summary")

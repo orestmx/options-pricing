@@ -51,3 +51,44 @@ def bs_pricer(S: Array, K: Array, r: Array, T: Array, sigma: Array, option_type:
     elif option_type == 'put':
         price = K * np.exp(-r * T) * _norm_cdf(-d2) - S * _norm_cdf(-d1)
         return price
+
+
+def bs_digital_pricer(S: Array, K: Array, r: Array, T: Array, sigma: Array, H: Array = 1.0, option_type: Literal['call', 'put'] = 'call') -> Callable[[Array], Array]:
+    """
+        Black Scholes pricer for digital call/put option .
+
+        Parameters
+        ----------
+        S : ndarray
+          Spot price(s)
+        K : ndarray
+          Strike price(s)
+        r : ndarray
+          Risk-free rate(s)
+        T : ndarray
+          Time(s) to maturity
+        sigma : ndarray
+          Volatility parameter
+        H: ndarray, default 1.0
+          Cash payout(s)
+        option_type : {'call', 'put'}
+          Type of option
+
+        Return
+        ------
+        np.ndarray
+          Price of option(s)
+        """
+    option_type = option_type.strip().lower()
+    if option_type not in {'call', 'put'}:
+        raise ValueError('option_type must be "call" or "put"')
+
+    d2 = ((np.log(S) - np.log(K)) + (r - 0.5 * sigma ** 2) * T) / (sigma * np.sqrt(T))
+
+    if option_type == 'call':
+        price = np.exp(-r * T) * H * _norm_cdf(d2)
+        return price
+
+    elif option_type == 'put':
+        price = np.exp(-r * T) * H * _norm_cdf(-d2)
+        return price
